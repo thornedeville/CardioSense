@@ -1,0 +1,21 @@
+# Arduino
+*.hex
+build/
+
+# Proteus temp/backup files
+*.bak
+*.~*
+*.lck
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Python (if used for analysis)
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# OS junk
+.DS_Store
+Thumbs.db
