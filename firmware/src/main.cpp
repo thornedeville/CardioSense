@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include "arrhythmia_model.h"
 #include "pins.h"
 #include "display.h"
 #include "buzzer.h"
@@ -19,6 +20,9 @@ void setup() {
   showStatus("READY");
 
   buzzerInit();
+
+  int16_t dummyFeatures[12] = {0};
+  arrhythmia_model_predict(dummyFeatures, 12);
 
   lastSampleTime = micros();
 }
