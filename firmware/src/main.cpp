@@ -1,13 +1,19 @@
 #include <Arduino.h>
-#include "arrhythmia_model.h"
 #include "pins.h"
 #include "display.h"
 #include "buzzer.h"
+#include "beat_detector.h"
+#include "features.h"
+#include "arrhythmia_model.h"
 
 const uint32_t sampleIntervalUs = 1000000UL / SAMPLE_RATE_HZ;
 uint32_t lastSampleTime = 0;
 
-int placeholderBpm = 72; // TODO: replace with real HR calculation
+int currentBpm = 0; // updated live from real beat detection - drives display + buzzer
+
+// Must match the label order emlearn printed in models/source/label_map.txt
+const char* CLASS_LABELS[5] = {"F", "N", "Q", "S", "V"};
+const int NORMAL_CLASS_INDEX = 1; // index of "N" in the array above
 
 void setup() {
   Serial.begin(115200);
@@ -20,9 +26,7 @@ void setup() {
   showStatus("READY");
 
   buzzerInit();
-
-  int16_t dummyFeatures[12] = {0};
-  arrhythmia_model_predict(dummyFeatures, 12);
+  beatDetectorInit();
 
   lastSampleTime = micros();
 }
@@ -43,5 +47,26 @@ void loop() {
   int raw = analogRead(ECG_PIN);
   Serial.println(raw);
 
-  heartbeatTick(placeholderBpm);
+  BeatDetectorResult result = beatDetectorUpdate(raw);
+
+  if (result.newPeakDetected) {
+    currentBpm = (int)round(result.instantBpm);
+    showHeartRate(currentBpm);
+  }
+
+  if (result.beatReady) {
+    int16_t features[FEATURE_COUNT];
+    computeFeatures(result.beat.window, result.beat.rrPrevSec, result.beat.rrNextSec, features);
+
+    int classIndex = arrhythmia_model_predict(features, FEATURE_COUNT);
+    bool isAnomaly = (classIndex != NORMAL_CLASS_INDEX);
+    const char* label = (classIndex >= 0 && classIndex < 5) ? CLASS_LABELS[classIndex] : "?";
+
+    showAnomaly(isAnomaly, label);
+
+    Serial.print("Beat classified: ");
+    Serial.println(label);
+  }
+
+  heartbeatTick(currentBpm);
 }
