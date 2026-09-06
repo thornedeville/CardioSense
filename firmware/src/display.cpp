@@ -24,11 +24,16 @@ void showHeartRate(int bpm) {
 }
 
 void showAnomaly(bool isAnomaly, const char* label) {
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print(isAnomaly ? "ANOMALY" : "NORMAL");
+  char temp[17];
   if (isAnomaly) {
-    lcd.setCursor(0, 1);
-    lcd.print(label);
+    snprintf(temp, sizeof(temp), "ALERT: %s", label);
+  } else {
+    snprintf(temp, sizeof(temp), "Status: NORMAL");
   }
+
+  char buf[17];
+  snprintf(buf, sizeof(buf), "%-16s", temp); // pad/truncate to exactly 16 chars
+
+  lcd.setCursor(0, 0);
+  lcd.print(buf);
 }

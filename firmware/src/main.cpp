@@ -9,11 +9,18 @@
 const uint32_t sampleIntervalUs = 1000000UL / SAMPLE_RATE_HZ;
 uint32_t lastSampleTime = 0;
 
-int currentBpm = 0; // updated live from real beat detection - drives display + buzzer
+int currentBpm = 0;
 
-// Must match the label order emlearn printed in models/source/label_map.txt
 const char* CLASS_LABELS[5] = {"F", "N", "Q", "S", "V"};
-const int NORMAL_CLASS_INDEX = 1; // index of "N" in the array above
+const char* CLASS_NAMES[5]  = {"Fusion", "Normal", "Paced/Unk", "SupraVent", "Ventric"};
+const int NORMAL_CLASS_INDEX = 1;
+
+const int CONFIRM_THRESHOLD = 3;
+
+int candidateClass = -1;
+int candidateCount = 0;
+int confirmedClass = NORMAL_CLASS_INDEX;
+bool hasShownConfirmedState = false; // forces the first real reading onto the display
 
 void setup() {
   Serial.begin(115200);
@@ -57,15 +64,28 @@ void loop() {
   if (result.beatReady) {
     int16_t features[FEATURE_COUNT];
     computeFeatures(result.beat.window, result.beat.rrPrevSec, result.beat.rrNextSec, features);
-
     int classIndex = arrhythmia_model_predict(features, FEATURE_COUNT);
-    bool isAnomaly = (classIndex != NORMAL_CLASS_INDEX);
-    const char* label = (classIndex >= 0 && classIndex < 5) ? CLASS_LABELS[classIndex] : "?";
-
-    showAnomaly(isAnomaly, label);
 
     Serial.print("Beat classified: ");
-    Serial.println(label);
+    Serial.println(CLASS_LABELS[classIndex]);
+
+    if (classIndex == candidateClass) {
+      candidateCount++;
+    } else {
+      candidateClass = classIndex;
+      candidateCount = 1;
+    }
+
+    bool stateChanged = (candidateClass != confirmedClass);
+    if (candidateCount >= CONFIRM_THRESHOLD && (stateChanged || !hasShownConfirmedState)) {
+      confirmedClass = candidateClass;
+      hasShownConfirmedState = true;
+      bool isAnomaly = (confirmedClass != NORMAL_CLASS_INDEX);
+      showAnomaly(isAnomaly, CLASS_NAMES[confirmedClass]);
+
+      Serial.print("Confirmed state changed to: ");
+      Serial.println(CLASS_NAMES[confirmedClass]);
+    }
   }
 
   heartbeatTick(currentBpm);
