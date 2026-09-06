@@ -1,0 +1,28 @@
+# --- PlatformIO / firmware ---
+firmware/.pio/
+firmware/.vscode/.browse.c_cpp.db*
+firmware/.vscode/c_cpp_properties.json
+firmware/.vscode/launch.json
+firmware/.vscode/ipch/
+
+# --- Python / Jupyter ---
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+venv/
+.venv/
+*.egg-info/
+
+# --- Large / regenerable data ---
+# Raw PhysioNet databases - large, publicly re-downloadable, not source code
+notebooks/data/
+
+# Test-set CSVs used only for validating the exported model - regenerate
+# from the notebook rather than committing (can be large)
+models/source/X_test_scaled.csv
+models/source/y_test.csv
+
+# --- OS / editor junk ---
+.DS_Store
+Thumbs.db
+*.swp
